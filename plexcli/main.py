@@ -13,7 +13,7 @@ from .commands import base
 
 command_modules = [
     'media',
-    #'players'
+    'servers'
 ]
 
 

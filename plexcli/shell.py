@@ -4,8 +4,6 @@ Interactive shell for Plex.
 
 import code
 import shellish
-import time
-from . import api
 
 
 class PlexShell(shellish.Shell):
@@ -17,18 +15,19 @@ class PlexShell(shellish.Shell):
 
     @property
     def prompt(self):
-        return 'XXX: plexcli> '
+        auth_state = self.root_command.state['auth']
         info = {
-            "user": self.api.ident['user']['username'],
+            "user": auth_state['username'],
             "site": self.api.site.split('//', 1)[1],
-            "cwd": '/'.join(x['name'] for x in self.cwd)
+            "cwd": '/'.join(self.cwd)
         }
         return ': \033[7m%(user)s\033[0m@%(site)s /%(cwd)s ; \n:; ' % (info)
 
     def __init__(self, root_command):
         super().__init__(root_command)
         self.api = root_command.api
-        self.cwd = ['/']
+        self.api = root_command.api
+        self.cwd = []
 
     def do_ls(self, arg):
         if arg:
@@ -45,28 +44,9 @@ class PlexShell(shellish.Shell):
             items.append('u:%s' % x['username'])
         self.columnize(items)
 
-    def do_login(self, arg):
-        try:
-            self.api.reset_auth()
-        except api.AuthFailure as e:
-            print('Auth Error:', e)
-
     def do_debug(self, arg):
         """ Run an interactive python interpretor. """
         code.interact(None, None, self.__dict__)
-
-    def do_debug_api(self, arg):
-        """ Start logging api activity to the screen. """
-        self.api.add_listener('start_request', self.on_request_start)
-        self.api.add_listener('finish_request', self.on_request_finish)
-
-    def on_request_start(self, args=None, kwargs=None):
-        self.last_request_start = time.perf_counter()
-        print('START REQUEST', args, kwargs)
-
-    def on_request_finish(self, result=None):
-        time_taken = time.perf_counter() - self.last_request_start
-        print('FINISHED REQUEST (%g seconds):' % time_taken, result)
 
     def do_cd(self, arg):
         cwd = self.cwd[:]

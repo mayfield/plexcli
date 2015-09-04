@@ -16,7 +16,7 @@ def long_desc():
 
 setup(
     name='plexcli',
-    version='0.0.0',
+    version='0.1.0',
     description='Command Line Interface for Plex',
     author='Justin Mayfield',
     author_email='tooker@gmail.com',

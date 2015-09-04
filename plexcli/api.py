@@ -48,8 +48,6 @@ class PlexAuth(HeaderAuth):
         else:
             headers[self.token_header] = params.get('auth_token')
             auth = None
-        print(params)
-        print(headers)
         signin = requests.post('%s/users/sign_in.xml' % self.api.uri,
                                auth=auth, headers=headers)
         signin_xml = xmldecode(signin.content)
