@@ -39,7 +39,18 @@ class PlexShell(shellish.Shell):
 
     @property
     def cwd_keys(self):
-        return [x[0] for x in self.cwd]
+        return self.flatten_cwd(self.cwd)
+
+    def flatten_cwd(self, cwd):
+        url = []
+        for x in cwd:
+            if x[0].startswith('/'):
+                del url[:]
+                part = x[0][1:]
+            else:
+                part = x[0]
+            url.append(part)
+        return url
 
     def get_title(self, el):
         """ Make the title more CLI friendly. """
@@ -76,6 +87,9 @@ class PlexShell(shellish.Shell):
         else:
             self.columnize(items)
 
+    def do_pwd(self, arg):
+        self.vtprint('%s/%s' % (self.serverapi.uri, '/'.join(self.cwd_keys)))
+
     def do_debug(self, arg):
         """ Run an interactive python interpretor. """
         env = self.__dict__.copy()
@@ -98,7 +112,7 @@ class PlexShell(shellish.Shell):
             if x == '..':
                 cwd.pop()
             else:
-                section = self.serverapi.get(*[x[0] for x in cwd])
+                section = self.serverapi.get(*self.flatten_cwd(cwd))
                 el = self.get_dir(section, x)
                 if el is None:
                     raise SystemExit("Directory Not Found: %s" % x)
@@ -108,7 +122,7 @@ class PlexShell(shellish.Shell):
     def complete_cd(self, _ignore, line, begin, end):
         prefix = line.split('cd ', 1)[1]
         try:
-            section = self.serverapi.get(*[x[0] for x in self.cwd])
+            section = self.serverapi.get(*self.cwd_keys)
             dirs = section.iter('Directory')
             titles = [self.get_title(x) for x in dirs]
             return [x for x in titles if x.startswith(prefix)]
