@@ -4,9 +4,9 @@ Some API handling code.
 
 import requests
 import syndicate
-import syndicate.client
 import syndicate.data
 from syndicate.adapters.sync import HeaderAuth
+from syndicate.client import ResponseError
 
 xmldecode = syndicate.data.serializers['xml'].decode
 
@@ -39,7 +39,7 @@ class PlexAuth(HeaderAuth):
 
     token_header = 'X-Plex-Token'
 
-    def __init__(self, api, params):
+    def __init__(self, api, params, signin):
         self.api = api
         self.params = params
         headers = {"X-Plex-Client-Identifier": 'plexcli'}
@@ -48,19 +48,23 @@ class PlexAuth(HeaderAuth):
         else:
             headers[self.token_header] = params.get('auth_token')
             auth = None
+        super().__init__(headers)
+        if signin:
+            self.signin(auth)
+
+    def signin(self, auth):
         signin = requests.post('%s/users/sign_in.xml' % self.api.uri,
-                               auth=auth, headers=headers)
+                               auth=auth, headers=self.headers)
         signin_xml = xmldecode(signin.content)
         if signin.status_code != 201:
             errors = [x.text for x in signin_xml.iter('error')]
-            raise AuthFailure('\n'.join(errors))
-        api.state['auth'] = auth = {
+            raise AuthFailure('\n'.join(errors) or signin.text)
+        self.api.state['auth'] = auth = {
             "token": signin_xml.attrib['authenticationToken'],
             "username": signin_xml.attrib['username'],
             "email": signin_xml.attrib['email']
         }
-        headers[self.token_header] = auth['token']
-        super().__init__(headers)
+        self.headers[self.token_header] = auth['token']
 
 
 class PlexService(syndicate.Service):
@@ -70,6 +74,8 @@ class PlexService(syndicate.Service):
     def default_data_getter(self, response):
         if response.error:
             raise response.error
+        elif response.http_code not in (200, 201):
+            raise ResponseError(response)
         else:
             return response.content
 
@@ -78,24 +84,46 @@ class PlexService(syndicate.Service):
         super().__init__(uri='<reset_by_connect>', serializer='xml',
                          trailing_slash=False)
 
-    def connect(self, uri, auth_params):
-        self.uri = uri or self.site
-        self.authenticate(auth_params)
+    def multi_connect(self, *args, **kwargs):
+        """ Try connecting with a list of urls.  If none work we abort but
+        return to our original state first. """
+        uri_save = self.uri
+        auth_save = self.adapter.auth
+        try:
+            self._multi_connect(*args, **kwargs)
+        except BaseException as e:
+            self.uri = uri_save
+            self.adapter.auth = auth_save
+            raise e
 
-    def authenticate(self, params):
-        auth = PlexAuth(self, params)
+    def _multi_connect(self, urls, **auth):
+        for x in urls:
+            print("Trying connection to %s: " % x, end='', flush=True)
+            try:
+                self.connect(x, signin=False, **auth)
+                self.get(timeout=1)  # Force connection attempt as test.
+                print('SUCCESS')
+                break
+            except IOError:
+                print('FAIL')
+        else:
+            raise IOError("ERROR: Could not connect to server(s)")
+
+    def connect(self, uri, signin=True, **auth_params):
+        self.uri = uri or self.site
+        self.authenticate(auth_params, signin)
+
+    def authenticate(self, params, signin):
+        auth = PlexAuth(self, params, signin)
         self.adapter.auth = auth
 
     def do(self, *args, **kwargs):
         """ Wrap some session and error handling around all API actions. """
         try:
             return super().do(*args, **kwargs)
-        except syndicate.client.ResponseError as e:
+        except ResponseError as e:
             self.handle_error(e)
 
     def handle_error(self, error):
         """ Pretty print error messages and exit. """
-        print('XXX: handle error', error)
-        print('XXX: handle error', error)
-        print('XXX: handle error', error)
         raise SystemExit("Error: %s" % error)

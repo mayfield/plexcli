@@ -79,14 +79,22 @@ def get_auth_params(args):
 
 
 def main():
-    root = PlexRoot(api=api.PlexService(state), state=state)
+    cloudapi = api.PlexService(state)
+    serverapi = api.PlexService(state)
+    root = PlexRoot(cloudapi=cloudapi, serverapi=serverapi, state=state)
     for modname in command_modules:
         module = importlib.import_module('.%s' % modname, 'plexcli.commands')
         for command in module.__commands__:
             root.add_subcommand(command)
     args = root.argparser.parse_args()
     auth_params = get_auth_params(args)
-    root.api.connect(args.site, auth_params)
+    cloudapi.connect(args.site, **auth_params)
+    if state.get('server_urls'):
+        try:
+            serverapi.multi_connect(state['server_urls'],
+                                    auth_token=state['server_auth_token'])
+        except IOError as e:
+            print(e)
     try:
         root(args)
     except KeyboardInterrupt:
