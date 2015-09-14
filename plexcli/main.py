@@ -56,7 +56,7 @@ class PlexRoot(base.PlexCommand):
                           version=distro.version)
 
     def run(self, args):
-        self.shell()
+        self.interact()
 
 
 def get_auth_params(args):

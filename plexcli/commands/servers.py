@@ -1,5 +1,5 @@
 """
-List and manager plex servers linked to your account.
+List and manage plex servers linked to your account.
 """
 
 from . import base
