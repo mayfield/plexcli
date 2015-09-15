@@ -96,16 +96,17 @@ class PlexService(syndicate.Service):
             self.adapter.auth = auth_save
             raise e
 
-    def _multi_connect(self, urls, **auth):
+    def _multi_connect(self, urls, verbose=False, **auth):
+        printer = print if verbose else lambda *_, **__: None
         for x in urls:
-            print("Trying connection to %s: " % x, end='', flush=True)
+            printer("Trying connection to %s: " % x, end='', flush=True)
             try:
                 self.connect(x, signin=False, **auth)
                 self.get(timeout=1)  # Force connection attempt as test.
-                print('SUCCESS')
+                printer('SUCCESS')
                 break
             except IOError:
-                print('FAIL')
+                printer('FAIL')
         else:
             raise IOError("ERROR: Could not connect to server(s)")
 

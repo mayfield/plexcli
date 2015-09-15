@@ -4,8 +4,8 @@ Interactive shell for Plex.
 
 import code
 import humanize
-import re
 import shellish
+from . import util
 from datetime import datetime
 
 
@@ -22,7 +22,7 @@ class PlexShell(shellish.Shell):
         info = super().prompt_info()
         info.update( {
             "user": state['auth']['username'],
-            "server": state.get('server_name', '<offline>'),
+            "server": util.friendly_get(state, 'server_name', '<offline>'),
             "cwd": '/'.join(self.cwd_titles)
         })
         return info
@@ -31,8 +31,7 @@ class PlexShell(shellish.Shell):
         super().__init__(root_command)
         self.cloudapi = root_command.cloudapi
         self.serverapi = root_command.serverapi
-        self.cwd = []
-        self.cwd.append(('library/sections', 'Sections'))
+        self.cwd = [('library/sections', 'Sections')]
 
     @property
     def cwd_titles(self):
@@ -55,7 +54,7 @@ class PlexShell(shellish.Shell):
 
     def seek_dir(self, path):
         directory = self.cwd[:]
-        if path[0].startswith('/'):
+        if not path[0]:
             del directory[1:]
         for x in path:
             if not x or x == '.':
@@ -67,13 +66,9 @@ class PlexShell(shellish.Shell):
                 el = self.get_dir(section, x)
                 if el is None:
                     raise SystemExit("Directory Not Found: %s" % x)
-                directory.append((el.get('key'), self.get_title(el)))
+                directory.append((el.get('key'),
+                                  util.friendly_get(el, 'title')))
         return directory
-
-    def get_title(self, el):
-        """ Make the title more CLI friendly. """
-        title = re.sub('''['"`]''', '', el.get('title'))
-        return title.replace(' ', '_')
 
     def do_ls(self, arg):
         verbose = '-l' in arg
@@ -84,24 +79,35 @@ class PlexShell(shellish.Shell):
         for x in section:
             if verbose:
                 if x.tag == 'Directory':
-                    items.append([self.get_title(x), '', '', 'dir', ''])
+                    items.append([
+                        util.friendly_get(x, 'title'),
+                        '',
+                        '',
+                        'dir',
+                        ''
+                    ])
                 elif x.tag == 'Video':
                     added = datetime.fromtimestamp(int(x.get('addedAt')))
                     mins = round(int(x.get('duration')) / 60000)
-                    items.append([self.get_title(x), x.get('year'),
-                                  humanize.naturaltime(added), x.get('type'),
-                                  '%s mins' % mins])
+                    items.append([
+                        util.friendly_get(x, 'title'),
+                        x.get('year'),
+                        humanize.naturaltime(added),
+                        x.get('type'),
+                        '%s mins' % mins
+                    ])
                 else:
                     raise SystemExit("What is this?: %s" % x)
             else:
                 if x.tag == 'Directory':
-                    items.append('%s/' % self.get_title(x))
+                    items.append('%s/' % util.friendly_get(x, 'title'))
                 elif x.tag == 'Video':
-                    items.append(self.get_title(x))
+                    items.append(util.friendly_get(x, 'title'))
                 else:
                     raise SystemExit("What is this?: %s" % x)
         if verbose:
-            self.tabulate(items)
+            self.tabulate(items, columns=[None, None, None,
+                          {"align": "right"}])
         else:
             self.columnize(items)
 
@@ -117,11 +123,11 @@ class PlexShell(shellish.Shell):
 
     def get_dir(self, section, title):
         for x in section.iter('Directory'):
-            if self.get_title(x) == title:
+            if util.friendly_get(x, 'title') == title:
                 return x
 
     def do_cd(self, arg):
-        self.cwd = self.seek_dir(arg.split('/'))
+        self.cwd[:] = self.seek_dir(arg.split('/'))
 
     def complete_cd(self, _ignore, line, begin, end):
         prefix = line.split('cd ', 1)[1]
@@ -132,5 +138,5 @@ class PlexShell(shellish.Shell):
             offt = self.cwd
         section = self.serverapi.get(*self.flatten_dir(offt))
         dirs = section.iter('Directory')
-        titles = [self.get_title(x) for x in dirs]
+        titles = [util.friendly_get(x, 'title') for x in dirs]
         return ['%s/' % x for x in titles if x.startswith(path[-1])]

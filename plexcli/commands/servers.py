@@ -3,6 +3,7 @@ List and manage plex servers linked to your account.
 """
 
 from . import base
+from .. import util
 
 
 class List(base.PlexCommand):
@@ -13,7 +14,7 @@ class List(base.PlexCommand):
     def run(self, args):
         data = [['Name', 'Address', 'Local Address', 'Owned']]
         data.extend([
-            x.attrib['name'],
+            util.friendly_get(x, 'name'),
             '%s://%s:%s' % (x.attrib['scheme'],
                             x.attrib['address'],
                             x.attrib['port']),
@@ -33,11 +34,11 @@ class Select(base.PlexCommand):
         self.add_argument('server', complete=self.servers_complete)
 
     def servers_complete(self, startswith):
-        return set(x.attrib['name']
+        return set(util.friendly_get(x, 'name')
                    for x in self.cloudapi.get('pms', 'servers'))
 
     def run(self, args):
-        servers = dict((x.attrib['name'], x.attrib)
+        servers = dict((util.friendly_get(x, 'name'), x.attrib)
                        for x in self.cloudapi.get('pms', 'servers'))
         try:
             server = servers[args.server]
@@ -49,10 +50,13 @@ class Select(base.PlexCommand):
                             server['port'])
         ]
         api = self.serverapi
-        api.multi_connect(urls, auth_token=server['accessToken'])
+        api.multi_connect(urls, verbose=True,
+                          auth_token=server['accessToken'])
         self.state['server_urls'] = urls
-        self.state['server_name'] = server['name']
+        self.state['server_name'] = util.friendly_get(server, 'name')
         self.state['server_auth_token'] = server['accessToken']
+        if self.shell:
+            del self.shell.cwd[1:]
 
 
 servers = base.PlexCommand(name='servers', doc=__doc__)
