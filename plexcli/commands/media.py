@@ -3,6 +3,7 @@ Media Service Command.
 """
 
 from . import base
+from .. import util
 
 
 class List(base.PlexCommand):
@@ -15,21 +16,36 @@ class List(base.PlexCommand):
         self.print_xml(sections)
 
 
-class Test1(base.PlexCommand):
-    """ Hah hahah . """
+class Refresh(base.PlexCommand):
+    """ Refresh (rescan) media """
 
-    name = 'test1'
+    name = 'refresh'
 
     def setup_args(self, parser):
-        self.add_argument('url')
+        self.add_argument('section', nargs='?',
+                          complete=self.complete_section)
+
+    def get_sections(self):
+        return dict((util.friendly_get(x, 'title'), x.attrib)
+                    for x in self.serverapi.get('library', 'sections'))
+
+    def complete_section(self, start):
+        sections = self.get_sections()
+        return set(x for x in sections if x.startswith(start))
 
     def run(self, args):
-        sections = self.api.get(args.url)
-        self.print_xml(sections)
+        path = ['library', 'sections']
+        if args.section:
+            sections = self.get_sections()
+            if args.section not in sections:
+                raise SystemExit("Section not found: %s" % args.section)
+            path.append(sections[args.section]['key'])
+        path.append('refresh')
+        self.serverapi.get(*path)
 
 
 media = base.PlexCommand(name='media', doc=__doc__)
 media.add_subcommand(List, default=True)
-media.add_subcommand(Test1)
+media.add_subcommand(Refresh)
 
 __commands__ = [media]
