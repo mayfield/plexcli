@@ -1,17 +1,26 @@
-plexcli - CLI for Plex
+plexcli
 ===========
+_*CLI for Plex*_
+
+[![Maturity](https://img.shields.io/pypi/status/plexcli.svg)](https://pypi.python.org/pypi/plexcli)
+[![License](https://img.shields.io/pypi/l/plexcli.svg)](https://pypi.python.org/pypi/plexcli)
+[![Change Log](https://img.shields.io/badge/change-log-blue.svg)](https://github.com/mayfield/plexcli/blob/master/CHANGELOG.md)
+[![Build Status](https://semaphoreci.com/api/v1/projects/5c2797d3-7839-4176-a14f-be1ed80a06f2/547084/shields_badge.svg)](https://semaphoreci.com/mayfield/plexcli)
+[![Version](https://img.shields.io/pypi/v/plexcli.svg)](https://pypi.python.org/pypi/plexcli)
+
+
+About
+--------
 
 Installation provides a command line utility (plex) which can be used to
 interact with Plex services.  Commands are subtasks of the plex utility.
 The full list of subtasks are visible by running 'plex --help'.
 
-**[CHANGELOG](CHANGELOG.md)**
-
 
 Requirements
 --------
 
-* Syndicate Python Library
+* syndicate Python Library
 * humanize Python Library
 * Plex Account
 * Plex Server [and/or Client (soon)]
@@ -20,12 +29,24 @@ Requirements
 Installation
 --------
 
-    python3 ./setup.py build
-    python3 ./setup.py install
+**PyPi Stable Release**
 
-or
+```
+pip3 install plexcli
+```
+    
+**Development Release**
 
-    pip3 install plexcli
+```
+python3 ./setup.py build
+python3 ./setup.py install
+```
+
+*or*
+
+```
+python3 ./setup.py develop
+```
 
 
 Compatibility
