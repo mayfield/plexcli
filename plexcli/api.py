@@ -10,6 +10,7 @@ from syndicate.client import ResponseError
 
 xmldecode = syndicate.data.serializers['xml'].decode
 
+
 # CRAZY DEBUG XXX
 def debug():
     try:
@@ -26,6 +27,9 @@ def debug():
     requests_log = logging.getLogger("requests.packages.urllib3")
     requests_log.setLevel(logging.DEBUG)
     requests_log.propagate = True
+    logger = logging.getLogger('websockets')
+    logger.setLevel(logging.DEBUG)
+    #logger.addHandler(logging.StreamHandler())
 #debug()
 # /CRAZY DEBUG XXX
 
@@ -127,4 +131,6 @@ class PlexService(syndicate.Service):
 
     def handle_error(self, error):
         """ Pretty print error messages and exit. """
-        raise SystemExit("Error: %s" % error)
+        html = error.response.content
+        raise SystemExit("API Error:\n    %s" %
+                         "\n    ".join(html.itertext()))

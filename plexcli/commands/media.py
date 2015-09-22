@@ -39,8 +39,10 @@ class Refresh(base.PlexCommand):
             sections = self.get_sections()
             if args.section not in sections:
                 raise SystemExit("Section not found: %s" % args.section)
-            path.append(sections[args.section]['key'])
-        path.append('refresh')
+            key = sections[args.section]['key']
+        else:
+            key = 'all'
+        path.extend((key, 'refresh'))
         self.serverapi.get(*path)
 
 

@@ -13,7 +13,10 @@ from .commands import base
 
 command_modules = [
     'media',
-    'servers'
+    'servers',
+    'clients',
+    'sessions',
+    'activity'
 ]
 
 
