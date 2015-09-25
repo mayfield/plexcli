@@ -45,11 +45,10 @@ class Log(base.PlexCommand):
     def run(self, args):
         headers = ['Date', 'Type', 'Message']
         accessors = [self.get_ts, self.get_type, self.get_msg]
-        columns = [11, 8, None]
-        table = Table(columns=columns, headers=headers, accessors=accessors,
-                      flex=False)
+        table = Table(headers=headers, accessors=accessors)
         evloop = asyncio.get_event_loop()
-        evloop.run_until_complete(self.notifications(table))
+        with evloop.run_until_complete(self.notifications(table)):
+            pass
 
 
 activity = base.PlexCommand(name='activity', doc=__doc__)

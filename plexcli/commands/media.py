@@ -12,8 +12,26 @@ class List(base.PlexCommand):
     name = 'ls'
 
     def run(self, args):
-        sections = (self.serverapi.get('library', 'sections'))
+        sections = self.serverapi.get('library', 'sections')
         self.print_xml(sections)
+
+
+class info(base.PlexCommand):
+    """ Info about media """
+
+    name = 'info'
+
+    def setup_args(self, parser):
+        self.add_argument("media", complete=self.complete_media)
+
+    def complete_media(self, prefix):
+        print("TBD, do relative lookup in common utils")
+
+    def run(self, args):
+        sections = self.serverapi.get('library', 'sections')
+        self.print_xml(sections)
+
+
 
 
 class Refresh(base.PlexCommand):

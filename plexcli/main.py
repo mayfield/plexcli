@@ -9,14 +9,15 @@ import os.path
 import pkg_resources
 import sys
 from . import api
-from .commands import base
+from .commands import base, shelltools
 
 command_modules = [
     'media',
     'servers',
     'clients',
     'sessions',
-    'activity'
+    'activity',
+    'shelltools'
 ]
 
 
@@ -59,6 +60,8 @@ class PlexRoot(base.PlexCommand):
                           version=distro.version)
 
     def run(self, args):
+        for command in shelltools.__interactive_commands__:
+            self.add_subcommand(command)
         self.interact()
 
 
@@ -84,7 +87,9 @@ def get_auth_params(args):
 def main():
     cloudapi = api.PlexService(state)
     serverapi = api.PlexService(state)
-    root = PlexRoot(cloudapi=cloudapi, serverapi=serverapi, state=state)
+    cwd = [('library/sections', 'Sections')]
+    root = PlexRoot(cloudapi=cloudapi, serverapi=serverapi, cwd=cwd,
+                    state=state)
     for modname in command_modules:
         module = importlib.import_module('.%s' % modname, 'plexcli.commands')
         for command in module.__commands__:
